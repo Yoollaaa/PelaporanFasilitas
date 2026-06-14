@@ -6,19 +6,19 @@ const router = express.Router();
 
 router.post('/register', async (req, res) => {
   try {
-    const { nama, email, password } = req.body;
+    const { nama, npm, email, password } = req.body;
 
-    const userExist = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const userExist = await pool.query('SELECT * FROM users WHERE email = $1 OR npm = $2', [email, npm]);
     if (userExist.rows.length > 0) {
-      return res.status(400).json({ error: "Email sudah terdaftar, silakan gunakan email lain." });
+      return res.status(400).json({ error: "Email atau NPM sudah terdaftar, silakan gunakan yang lain." });
     }
 
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     const newUser = await pool.query(
-      'INSERT INTO users (nama, email, password) VALUES ($1, $2, $3) RETURNING id, nama, email, role',
-      [nama, email, hashedPassword]
+      'INSERT INTO users (nama, npm, email, password) VALUES ($1, $2, $3, $4) RETURNING id, nama, npm, email, role',
+      [nama, npm, email, hashedPassword]
     );
 
     res.status(201).json({
@@ -67,6 +67,37 @@ router.post('/login', async (req, res) => {
 
   } catch (err) {
     console.error("Error saat login:", err.message);
+    res.status(500).json({ error: "Terjadi kesalahan pada server" });
+  }
+});
+
+router.post('/register-admin', async (req, res) => {
+  try {
+    const { nama, npm, email, password, admin_key } = req.body;
+
+    if (admin_key !== 'UNILA_SARPRAS_2024') {
+      return res.status(403).json({ error: "Kode Rahasia Admin salah!" });
+    }
+
+    const userExist = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (userExist.rows.length > 0) {
+      return res.status(400).json({ error: "Email sudah terdaftar!" });
+    }
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const newUser = await pool.query(
+      "INSERT INTO users (nama, npm, email, password, role) VALUES ($1, $2, $3, $4, 'admin') RETURNING id, nama, email, role",
+      [nama, npm, email, hashedPassword]
+    );
+
+    res.status(201).json({
+      message: "Akun Admin berhasil dibuat!",
+      user: newUser.rows[0]
+    });
+  } catch (err) {
+    console.error(err.message);
     res.status(500).json({ error: "Terjadi kesalahan pada server" });
   }
 });

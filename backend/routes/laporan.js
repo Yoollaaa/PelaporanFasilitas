@@ -1,31 +1,36 @@
 const express = require('express');
 const multer = require('multer');
-const cloudinary = require('cloudinary'); 
-const cloudinaryStorage = require('multer-storage-cloudinary'); 
+const cloudinary = require('cloudinary').v2; 
+// 1. Perbaikan cara import CloudinaryStorage versi terbaru
+const { CloudinaryStorage } = require('multer-storage-cloudinary'); 
 const pool = require('../db');
 const router = express.Router();
 
-cloudinary.v2.config({
+// Konfigurasi akses Cloudinary
+cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const storage = cloudinaryStorage({
+// 2. Perbaikan sintaks storage sesuai standar versi terbaru
+const storage = new CloudinaryStorage({
   cloudinary: cloudinary, 
-  allowedFormats: ['jpg', 'png', 'jpeg']
+  params: {
+    folder: 'laporan_fasilitas_unila', 
+    allowed_formats: ['jpg', 'png', 'jpeg'] // gunakan allowed_formats (pakai underscore)
+  }
 });
 
 const upload = multer({ storage: storage });
 
-
+// === ROUTE: POST LAPORAN BARU ===
 router.post('/', upload.single('foto'), async (req, res) => {
   try {
-    console.log("Data foto dari Cloudinary:", req.file); 
-    
     const { user_id, deskripsi, latitude, longitude } = req.body;
     
-    const foto_url = req.file ? (req.file.secure_url || req.file.url || req.file.path) : null;
+    // Ambil URL foto dari Cloudinary jika ada file yang diunggah
+    const foto_url = req.file ? req.file.path : null;
 
     if (!user_id || !deskripsi) {
       return res.status(400).json({ error: "User ID dan deskripsi kerusakan wajib diisi!" });
@@ -49,6 +54,7 @@ router.post('/', upload.single('foto'), async (req, res) => {
   }
 });
 
+// === ROUTE: GET SEMUA LAPORAN (UNTUK ADMIN) ===
 router.get('/', async (req, res) => {
   try {
     const query = `
@@ -60,7 +66,7 @@ router.get('/', async (req, res) => {
     const result = await pool.query(query);
     
     res.json({
-      message: "Berhasil menarik data laporan",
+      message: "Berhasil menarik data seluruh laporan",
       data: result.rows
     });
   } catch (err) {
@@ -69,6 +75,24 @@ router.get('/', async (req, res) => {
   }
 });
 
+// === ROUTE: GET RIWAYAT LAPORAN USER ===
+router.get('/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const query = `SELECT * FROM laporan WHERE user_id = $1 ORDER BY created_at DESC`;
+    const result = await pool.query(query, [userId]);
+    
+    res.json({ 
+      message: "Berhasil menarik riwayat laporan pengguna", 
+      data: result.rows 
+    });
+  } catch (err) {
+    console.error("Error mengambil riwayat:", err.message);
+    res.status(500).json({ error: "Terjadi kesalahan pada server" });
+  }
+});
+
+// === ROUTE: UPDATE STATUS LAPORAN ===
 router.patch('/:id/status', async (req, res) => {
   try {
     const { id } = req.params;

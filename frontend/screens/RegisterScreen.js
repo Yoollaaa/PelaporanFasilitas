@@ -12,9 +12,8 @@ export default function RegisterScreen({ navigation }) {
       Alert.alert('Perhatian', 'Semua kolom wajib diisi!');
       return;
     }
-    // Logika API Register ditaruh di sini nanti
     Alert.alert('Sukses', 'Akun berhasil dibuat! Silakan Login.');
-    navigation.navigate('Login'); // Arahkan kembali ke Login setelah daftar
+    navigation.navigate('Login');
   };
 
   return (
