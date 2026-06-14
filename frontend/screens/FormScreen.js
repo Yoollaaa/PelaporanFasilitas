@@ -1,48 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { 
+  StyleSheet, Text, View, TextInput, TouchableOpacity, Image, 
+  ScrollView, Alert, ActivityIndicator, Platform, KeyboardAvoidingView, useWindowDimensions 
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function FormScreen({ navigation }) { 
+const API_URL = 'http://192.168.1.9:5000/api/laporan';
+
+export default function FormScreen({ navigation }) {
+  const { width, height } = useWindowDimensions(); 
+
   const [deskripsi, setDeskripsi] = useState('');
   const [foto, setFoto] = useState(null);
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [userId, setUserId] = useState('');
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const userData = await AsyncStorage.getItem('user');
-        if (userData) {
-          const user = JSON.parse(userData);
-          setUserId(user.id);
-        }
-      } catch (e) {
-        console.error('Gagal memuat data user:', e);
-      }
+    const loadUserData = async () => {
+      const data = await AsyncStorage.getItem('user');
+      if (data) setUserData(JSON.parse(data));
     };
-    fetchUser();
+    loadUserData();
   }, []);
+
+  const handleLogout = () => {
+    Alert.alert('Konfirmasi Keluar', 'Apakah kamu yakin ingin keluar?', [
+      { text: 'Batal', style: 'cancel' },
+      { 
+        text: 'Keluar', style: 'destructive',
+        onPress: async () => {
+          await AsyncStorage.clear();
+          navigation.replace('Login');
+        }
+      }
+    ]);
+  };
 
   const ambilFoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Izin Ditolak', 'Aplikasi membutuhkan izin kamera.');
-      return;
-    }
-
-    let result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.7, 
-    });
-
-    if (!result.canceled) {
-      setFoto(result.assets[0].uri);
-    }
+    if (status !== 'granted') return Alert.alert('Error', 'Izin kamera dibutuhkan.');
+    let result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.7 });
+    if (!result.canceled) setFoto(result.assets[0].uri);
   };
 
   const ambilLokasi = async () => {
@@ -50,131 +53,158 @@ export default function FormScreen({ navigation }) {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
       setLoading(false);
-      Alert.alert('Izin Ditolak', 'Aplikasi membutuhkan izin lokasi.');
-      return;
+      return Alert.alert('Error', 'Izin lokasi dibutuhkan.');
     }
-
-    let currentPosition = await Location.getCurrentPositionAsync({});
-    setLocation({
-      latitude: currentPosition.coords.latitude,
-      longitude: currentPosition.coords.longitude,
-    });
+    let loc = await Location.getCurrentPositionAsync({});
+    setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
     setLoading(false);
   };
 
   const kirimLaporan = async () => {
-    if (!deskripsi || !foto || !location) {
-      Alert.alert('Data Belum Lengkap', 'Pastikan deskripsi, foto fasilitas, dan lokasi GPS sudah terisi.');
-      return;
-    }
-
-    if (!userId) {
-      Alert.alert('Sesi Berakhir', 'Gagal mengenali user. Silakan login ulang.');
-      return;
-    }
-
+    if (!deskripsi || !foto || !location) return Alert.alert('Perhatian', 'Isi semua data termasuk foto dan lokasi.');
     setLoading(true);
-
-    const formData = new FormData();
-    formData.append('user_id', userId); 
-    formData.append('deskripsi', deskripsi);
-    formData.append('latitude', location.latitude.toString());
-    formData.append('longitude', location.longitude.toString());
-    
-    const namaFile = foto.split('/').pop();
-    const match = /\.(\w+)$/.exec(namaFile);
-    const tipeFile = match ? `image/${match[1]}` : `image/jpeg`;
-    
-    formData.append('foto', {
-      uri: foto,
-      name: namaFile,
-      type: tipeFile,
-    });
-
     try {
-      const response = await axios.post('http://192.168.2.242:5000/api/laporan', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const formData = new FormData();
+      formData.append('user_id', userData?.id || ''); 
+      formData.append('deskripsi', deskripsi);
+      formData.append('latitude', location.latitude.toString());
+      formData.append('longitude', location.longitude.toString());
+      
+      const namaFile = foto.split('/').pop();
+      const match = /\.(\w+)$/.exec(namaFile);
+      const tipeFile = match ? `image/${match[1]}` : `image/jpeg`;
+      formData.append('foto', { uri: foto, name: namaFile, type: tipeFile });
 
+      const response = await axios.post(API_URL, formData, { headers: { 'Content-Type': 'multipart/form-data' }});
       if (response.status === 201) {
-        Alert.alert('Sukses 🎉', 'Laporan kerusakan fasilitas berhasil dikirim!');
-        setDeskripsi('');
-        setFoto(null);
-        setLocation(null);
+        Alert.alert('Sukses 🎉', 'Laporan berhasil dikirim!');
+        setDeskripsi(''); setFoto(null); setLocation(null);
+        navigation.navigate('Riwayat Laporan'); 
       }
     } catch (error) {
       console.error(error);
-      Alert.alert('Gagal', 'Terjadi kesalahan saat mengirim laporan ke server.');
+      Alert.alert('Gagal', 'Terjadi kesalahan saat mengirim.');
     } finally {
       setLoading(false);
     }
   };
 
+  const userName = userData?.nama || 'Mahasiswa';
+  const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=FFFFFF&color=0A2540&bold=true`;
+
   return (
-    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.title}>Lapor Fasilitas</Text>
-        <Text style={styles.subtitle}>Bantu Unila menjadi lebih baik dengan melaporkan fasilitas yang rusak di sekitarmu.</Text>
-      </View>
+    <View style={[styles.mainWrapper, { overflow: 'hidden' }]}>
+      <View style={[
+        styles.topOrnament, 
+        { 
+          width: width * 1.2, 
+          height: height * 0.38, 
+          top: -height * 0.1, 
+          left: -width * 0.1 
+        }
+      ]} />
       
-      <View style={styles.card}>
-        <Text style={styles.label}>Apa yang rusak?</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Contoh: AC Ruang Kuliah 3.1 Gedung H meneteskan air..."
-          placeholderTextColor="#94A3B8"
-          value={deskripsi}
-          onChangeText={setDeskripsi}
-          multiline
-        />
-
-        <Text style={styles.label}>Bukti Foto</Text>
-        <TouchableOpacity style={styles.btnMedia} onPress={ambilFoto} activeOpacity={0.7}>
-          <Text style={styles.btnText}>{foto ? '📸 Ganti Foto' : '📸 Ambil Foto Kamera'}</Text>
-        </TouchableOpacity>
-        {foto && <Image source={{ uri: foto }} style={styles.previewImage} />}
-
-        <Text style={styles.label}>Lokasi Saat Ini</Text>
-        <TouchableOpacity style={styles.btnMediaLocation} onPress={ambilLokasi} activeOpacity={0.7}>
-          <Text style={styles.btnTextLocation}>📍 Deteksi Titik GPS</Text>
-        </TouchableOpacity>
-        
-        {location && (
-          <View style={styles.locationBox}>
-            <Text style={styles.locationText}>Lat:  {location.latitude}</Text>
-            <Text style={styles.locationText}>Long: {location.longitude}</Text>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView 
+          contentContainerStyle={styles.container} 
+          showsVerticalScrollIndicator={false} 
+          keyboardShouldPersistTaps="handled"
+        >
+          
+          <View style={styles.topBar}>
+            <View style={styles.profileSection}>
+              <Image source={{ uri: avatarUrl }} style={styles.avatarMini} />
+              <View>
+                <Text style={styles.greetingText}>Halo,</Text>
+                <Text style={styles.userNameText}>{userName}</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={24} color="#EF4444" />
+            </TouchableOpacity>
           </View>
-        )}
-      </View>
 
-      <TouchableOpacity style={styles.btnKirim} onPress={kirimLaporan} disabled={loading} activeOpacity={0.8}>
-        {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.btnKirimText}>KIRIM LAPORAN</Text>}
-      </TouchableOpacity>
+          <View style={styles.pageTitleContainer}>
+            <Text style={styles.title}>Lapor Fasilitas</Text>
+            <Text style={styles.subtitle}>Bantu kampus menjadi lebih baik.</Text>
+          </View>
+          
+          <View style={styles.card}>
+            <Text style={styles.label}>Detail Kerusakan</Text>
+            <View style={[styles.inputContainer, styles.inputContainerMultiline]}>
+              <Ionicons name="create-outline" size={20} color="#94A3B8" style={styles.inputIconTop} />
+              <TextInput style={styles.inputMultiline} placeholder="Ceritakan detail kerusakan..." placeholderTextColor="#94A3B8" value={deskripsi} onChangeText={setDeskripsi} multiline />
+            </View>
 
-      <TouchableOpacity style={styles.btnRiwayat} onPress={() => navigation.navigate('Riwayat')} activeOpacity={0.8}>
-        <Text style={styles.btnRiwayatText}>📄 Lihat Riwayat Saya</Text>
-      </TouchableOpacity>
-    </ScrollView>
+            <Text style={styles.label}>Bukti Foto</Text>
+            <TouchableOpacity style={[styles.actionButton, foto && styles.actionButtonActiveFoto]} onPress={ambilFoto} activeOpacity={0.7}>
+              <Ionicons name={foto ? "checkmark-circle" : "camera-outline"} size={22} color={foto ? "#10B981" : "#94A3B8"} style={styles.inputIcon} />
+              <Text style={[styles.actionButtonText, foto && styles.actionButtonTextActiveFoto]}>{foto ? 'Foto Tersimpan' : 'Ambil Foto'}</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.label}>Lokasi GPS</Text>
+            <TouchableOpacity style={[styles.actionButton, location && styles.actionButtonActiveLocation]} onPress={ambilLokasi} activeOpacity={0.7}>
+              <Ionicons name={location ? "location" : "location-outline"} size={22} color={location ? "#C026D3" : "#94A3B8"} style={styles.inputIcon} />
+              <Text style={[styles.actionButtonText, location && styles.actionButtonTextActiveLocation]}>{location ? 'Koordinat Terkunci' : 'Deteksi Lokasi Otomatis'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.btnKirim} onPress={kirimLaporan} disabled={loading} activeOpacity={0.8}>
+              {loading ? <ActivityIndicator color="#fff" size="small" /> : (
+                <View style={styles.btnKirimContent}>
+                  <Text style={styles.btnKirimText}>KIRIM LAPORAN</Text>
+                  <Ionicons name="paper-plane" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ height: 120, width: '100%' }} />
+
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: '#F8FAFC', padding: 24, paddingBottom: 40 },
-  headerContainer: { marginBottom: 24, marginTop: 40 },
-  title: { fontSize: 32, fontWeight: '800', color: '#0F172A', letterSpacing: -0.5 },
-  subtitle: { fontSize: 15, color: '#64748B', marginTop: 8, lineHeight: 22 },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, shadowColor: '#CBD5E1', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4, marginBottom: 20 },
-  label: { fontSize: 14, fontWeight: '700', color: '#334155', marginBottom: 8, marginTop: 12 },
-  input: { backgroundColor: '#F1F5F9', borderRadius: 14, padding: 16, fontSize: 15, color: '#0F172A', borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 12, minHeight: 100, textAlignVertical: 'top' },
-  btnMedia: { backgroundColor: '#E2E8F0', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
-  btnText: { color: '#334155', fontWeight: 'bold' },
-  previewImage: { width: '100%', height: 200, borderRadius: 12, marginBottom: 12, resizeMode: 'cover' },
-  btnMediaLocation: { backgroundColor: '#DBEAFE', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
-  btnTextLocation: { color: '#1D4ED8', fontWeight: 'bold' },
-  locationBox: { backgroundColor: '#F8FAFC', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', marginTop: 8 },
-  locationText: { color: '#64748B', fontSize: 13, fontFamily: 'monospace' },
-  btnKirim: { backgroundColor: '#0F172A', padding: 18, borderRadius: 16, alignItems: 'center', elevation: 3 },
-  btnKirimText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold', letterSpacing: 1 },
-  btnRiwayat: { backgroundColor: '#E2E8F0', padding: 18, borderRadius: 16, alignItems: 'center', marginTop: 12 },
-  btnRiwayatText: { color: '#0F172A', fontSize: 16, fontWeight: 'bold' }
+  mainWrapper: { flex: 1, backgroundColor: '#F4F7FC' },
+  
+  topOrnament: { 
+    position: 'absolute', 
+    backgroundColor: '#0A2540', 
+    transform: [{ rotate: '-5deg' }], 
+    borderBottomLeftRadius: 60, 
+    borderBottomRightRadius: 120 
+  },
+  
+  container: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20 },
+  
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 },
+  profileSection: { flexDirection: 'row', alignItems: 'center' },
+  avatarMini: { width: 44, height: 44, borderRadius: 22, marginRight: 12, borderWidth: 2, borderColor: 'rgba(255, 255, 255, 0.8)' },
+  greetingText: { fontSize: 13, color: '#93C5FD', fontWeight: '600' },
+  userNameText: { fontSize: 16, color: '#FFFFFF', fontWeight: '800' },
+  
+  pageTitleContainer: { marginBottom: 32 },
+  title: { fontSize: 28, fontWeight: '900', color: '#FFFFFF', marginBottom: 6 },
+  subtitle: { fontSize: 14, color: '#D1D5DB' },
+  
+  card: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 20, elevation: 8, marginBottom: 10 },
+  label: { fontSize: 12, fontWeight: '800', color: '#475569', marginBottom: 8, marginTop: 16, textTransform: 'uppercase' },
+  inputContainer: { flexDirection: 'row', backgroundColor: '#F8FAFC', borderWidth: 1.5, borderColor: '#E2E8F0', borderRadius: 16, paddingHorizontal: 16 },
+  inputContainerMultiline: { height: 100, alignItems: 'flex-start', paddingVertical: 12 },
+  inputIconTop: { marginRight: 10, marginTop: 4 },
+  inputIcon: { marginRight: 10 },
+  inputMultiline: { flex: 1, fontSize: 15, color: '#0F172A', textAlignVertical: 'top' },
+  
+  actionButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderWidth: 1.5, borderColor: '#E2E8F0', borderRadius: 16, paddingHorizontal: 16, height: 54, marginBottom: 8 },
+  actionButtonActiveFoto: { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' },
+  actionButtonActiveLocation: { backgroundColor: '#FDF4FF', borderColor: '#F5D0FE' },
+  actionButtonText: { fontSize: 14, color: '#94A3B8', fontWeight: '600', flex: 1 },
+  actionButtonTextActiveFoto: { color: '#059669' },
+  actionButtonTextActiveLocation: { color: '#A21CAF' },
+  
+  btnKirim: { backgroundColor: '#0A2540', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 24, shadowColor: '#0A2540', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 },
+  btnKirimContent: { flexDirection: 'row', alignItems: 'center' },
+  btnKirimText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900', letterSpacing: 0.5 }
 });
