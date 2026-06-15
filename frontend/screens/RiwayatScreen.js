@@ -7,8 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://192.168.2.242:5000/api/laporan';
-const BASE_URL = 'http://192.168.2.242:5000/'; 
+const API_URL = 'http://167.172.66.214:5000/api/laporan';
+const BASE_URL = 'http://167.172.66.214:5000/'; 
 
 export default function RiwayatScreen() {
   const { width, height } = useWindowDimensions(); 
@@ -31,10 +31,14 @@ export default function RiwayatScreen() {
 
   const fetchRiwayat = async (userId) => {
     try {
-      const response = await axios.get(API_URL);
-      const semua = response.data.data || response.data;
-      const laporanku = semua.filter(item => item.user_id === userId || (item.user && item.user.id === userId));
-      setRiwayat(laporanku.sort((a, b) => b.id - a.id));
+      const token = await AsyncStorage.getItem('token');
+
+      const response = await axios.get(`${API_URL}/user/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const laporanku = response.data.data || response.data;
+      setRiwayat(laporanku);
     } catch (error) {
       console.error(error);
     } finally {

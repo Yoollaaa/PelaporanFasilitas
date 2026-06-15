@@ -8,8 +8,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
-const API_URL = 'http://192.168.2.242:5000/api/laporan';
-const BASE_URL = 'http://192.168.2.242:5000/'; 
+const API_URL = 'http://167.172.66.214:5000/api/laporan';
+const BASE_URL = 'http://167.172.66.214:5000/'; 
 
 export default function AdminDashboardScreen({ navigation }) {
   const [laporan, setLaporan] = useState([]);
@@ -18,7 +18,12 @@ export default function AdminDashboardScreen({ navigation }) {
 
   const fetchLaporan = async () => {
     try {
-      const response = await axios.get(API_URL);
+      const token = await AsyncStorage.getItem('token');
+      
+      const response = await axios.get(API_URL, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
       setLaporan(response.data.data || response.data);
     } catch (error) {
       console.error(error);
@@ -59,8 +64,14 @@ export default function AdminDashboardScreen({ navigation }) {
 
   const updateStatus = async (id, statusBaru) => {
     try {
-      await axios.patch(`${API_URL}/${id}/status`, { status: statusBaru });
-      Alert.alert('Sukses 🎉', `Status laporan berhasil diperbarui menjadi: ${statusBaru}`);
+      const token = await AsyncStorage.getItem('token');
+      
+      await axios.patch(`${API_URL}/${id}/status`, 
+        { status: statusBaru }, 
+        { headers: { Authorization: `Bearer ${token}` } } 
+      );
+      
+      Alert.alert('Sukses ', `Status laporan berhasil diperbarui menjadi: ${statusBaru}`);
       fetchLaporan(); 
     } catch (error) {
       console.error(error);

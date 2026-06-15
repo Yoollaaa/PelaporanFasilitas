@@ -9,7 +9,7 @@ import * as Location from 'expo-location';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://192.168.2.242:5000/api/laporan';
+const API_URL = 'http://167.172.66.214:5000/api/laporan';
 
 export default function FormScreen({ navigation }) {
   const { width, height } = useWindowDimensions(); 
@@ -75,7 +75,14 @@ export default function FormScreen({ navigation }) {
       const tipeFile = match ? `image/${match[1]}` : `image/jpeg`;
       formData.append('foto', { uri: foto, name: namaFile, type: tipeFile });
 
-      const response = await axios.post(API_URL, formData, { headers: { 'Content-Type': 'multipart/form-data' }});
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.post(API_URL, formData, { 
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}` 
+        }
+      });
+
       if (response.status === 201) {
         Alert.alert('Sukses 🎉', 'Laporan berhasil dikirim!');
         setDeskripsi(''); setFoto(null); setLocation(null);

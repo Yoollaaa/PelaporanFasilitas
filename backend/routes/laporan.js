@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path'); 
 const pool = require('../db');
 const router = express.Router();
+const authMiddleware = require('../middleware/authMiddleware');
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -16,10 +17,9 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-router.post('/', upload.single('foto'), async (req, res) => {
+router.post('/', authMiddleware, upload.single('foto'), async (req, res) => {
   try {
     const { user_id, deskripsi, latitude, longitude } = req.body;
-    
     const foto = req.file ? req.file.filename : null;
 
     if (!user_id || !deskripsi) {
@@ -44,8 +44,12 @@ router.post('/', upload.single('foto'), async (req, res) => {
   }
 });
 
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: "Akses ditolak! Rute ini khusus untuk Admin Sarpras." });
+    }
+
     const query = `
       SELECT laporan.*, users.nama AS nama_pelapor 
       FROM laporan 
@@ -64,9 +68,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/user/:userId', async (req, res) => {
+router.get('/user/:userId', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.params;
+    
     const query = `
       SELECT laporan.*, users.nama AS nama_pelapor, users.email AS email_pelapor
       FROM laporan 
@@ -86,8 +91,12 @@ router.get('/user/:userId', async (req, res) => {
   }
 });
 
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', authMiddleware, async (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: "Akses ditolak! Anda tidak memiliki otoritas." });
+    }
+
     const { id } = req.params;
     const { status } = req.body; 
 

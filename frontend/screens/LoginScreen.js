@@ -24,7 +24,7 @@ export default function LoginScreen({ navigation }) {
     }
 
     try {
-      const response = await axios.post('http://192.168.2.242:5000/api/auth/login', {
+      const response = await axios.post('http://167.172.66.214:5000/api/auth/login', {
         email: emailBersih, 
         password: password
       });
@@ -74,9 +74,6 @@ export default function LoginScreen({ navigation }) {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.headerContainer}>
-            <View style={styles.logoContainer}>
-              <Ionicons name="log-in" size={36} color="#FFFFFF" />
-            </View>
             <Text style={styles.title}>Selamat Datang</Text>
             <Text style={styles.subtitle}>
               {loginType === 'mahasiswa' 
