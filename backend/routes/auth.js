@@ -78,6 +78,7 @@ router.post('/register-admin', async (req, res) => {
     if (admin_key !== 'UNILA_SARPRAS_2024') {
       return res.status(403).json({ error: "Kode Rahasia Admin salah!" });
     }
+    
 
     const userExist = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (userExist.rows.length > 0) {
