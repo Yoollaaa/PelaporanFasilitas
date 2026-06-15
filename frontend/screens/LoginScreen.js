@@ -54,10 +54,10 @@ export default function LoginScreen({ navigation }) {
         }
       }
     } catch (error) {
-      console.error(error);
-      const errorMessage = error.response?.data?.error || 'Gagal terhubung ke server. Cek koneksi wifi!';
-      Alert.alert('Gagal Login', errorMessage);
-    }
+      console.log("Error Detail:", error.message);
+      console.log("Error Response:", error.response?.data);
+      Alert.alert('Gagal', 'Tidak bisa terhubung ke server');
+}
   };
 
   return (
