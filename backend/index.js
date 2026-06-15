@@ -25,6 +25,6 @@ pool.connect((err, client, release) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server Express berjalan di port ${PORT}`);
+app.listen(5000, '0.0.0.0', () => {
+  console.log('Server berjalan di port 5000');
 });
