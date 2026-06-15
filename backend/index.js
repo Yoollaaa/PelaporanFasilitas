@@ -9,7 +9,10 @@ const path = require('path');
 
 app.use(cors());
 app.use(express.json());
-const authRoutes = require('./routes/auth');
+
+const authRoutes = require('./routes/auth'); 
+app.use('/api/auth', authRoutes);
+
 const laporanRoutes = require('./routes/laporan');
 
 app.use('/api/auth', authRoutes);
