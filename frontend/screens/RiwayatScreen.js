@@ -7,8 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://192.168.1.9:5000/api/laporan';
-const BASE_URL = 'http://192.168.1.9:5000/'; 
+const API_URL = 'http://192.168.2.242:5000/api/laporan';
+const BASE_URL = 'http://192.168.2.242:5000/'; 
 
 export default function RiwayatScreen() {
   const { width, height } = useWindowDimensions(); 

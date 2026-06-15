@@ -9,7 +9,7 @@ import * as Location from 'expo-location';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://192.168.1.9:5000/api/laporan';
+const API_URL = 'http://192.168.2.242:5000/api/laporan';
 
 export default function FormScreen({ navigation }) {
   const { width, height } = useWindowDimensions(); 

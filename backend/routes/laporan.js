@@ -1,21 +1,16 @@
 const express = require('express');
 const multer = require('multer');
-const cloudinary = require('cloudinary').v2; 
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const path = require('path'); 
 const pool = require('../db');
 const router = express.Router();
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
-
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary, 
-  params: {
-    folder: 'laporan_fasilitas_unila', 
-    allowed_formats: ['jpg', 'png', 'jpeg'] 
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/'); 
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
   }
 });
 
@@ -25,27 +20,27 @@ router.post('/', upload.single('foto'), async (req, res) => {
   try {
     const { user_id, deskripsi, latitude, longitude } = req.body;
     
-    const foto_url = req.file ? req.file.path : null;
+    const foto = req.file ? req.file.filename : null;
 
     if (!user_id || !deskripsi) {
       return res.status(400).json({ error: "User ID dan deskripsi kerusakan wajib diisi!" });
     }
 
     const insertQuery = `
-      INSERT INTO laporan (user_id, deskripsi, foto_url, latitude, longitude)
+      INSERT INTO laporan (user_id, deskripsi, foto, latitude, longitude)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
     
-    const result = await pool.query(insertQuery, [user_id, deskripsi, foto_url, latitude, longitude]);
+    const result = await pool.query(insertQuery, [user_id, deskripsi, foto, latitude, longitude]);
 
     res.status(201).json({
-      message: "Laporan fasilitas rusak berhasil dikirim dan tersimpan di database!",
+      message: "Laporan fasilitas rusak berhasil dikirim!",
       data: result.rows[0]
     });
   } catch (err) {
     console.error("Error saat membuat laporan:", err.message);
-    res.status(500).json({ error: "Terjadi kesalahan pada server saat memproses laporan" });
+    res.status(500).json({ error: "Terjadi kesalahan pada server" });
   }
 });
 
@@ -72,7 +67,13 @@ router.get('/', async (req, res) => {
 router.get('/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const query = `SELECT * FROM laporan WHERE user_id = $1 ORDER BY created_at DESC`;
+    const query = `
+      SELECT laporan.*, users.nama AS nama_pelapor, users.email AS email_pelapor
+      FROM laporan 
+      JOIN users ON laporan.user_id = users.id 
+      WHERE laporan.user_id = $1 
+      ORDER BY laporan.created_at DESC
+    `;
     const result = await pool.query(query, [userId]);
     
     res.json({ 
