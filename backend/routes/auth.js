@@ -79,7 +79,6 @@ router.post('/register-admin', async (req, res) => {
       return res.status(403).json({ error: "Kode Rahasia Admin salah!" });
     }
     
-
     const userExist = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (userExist.rows.length > 0) {
       return res.status(400).json({ error: "Email sudah terdaftar!" });
