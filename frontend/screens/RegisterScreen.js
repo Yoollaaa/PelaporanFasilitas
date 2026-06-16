@@ -16,34 +16,46 @@ export default function RegisterScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleRegister = async () => {
-    const emailBersih = email.trim().toLowerCase();
+    if (!nama || !npm || !email || !password) {
+      return Alert.alert('Perhatian', 'Semua kolom wajib diisi!');
+    }
 
-    if (!nama || !npm || !emailBersih || !password) {
-      Alert.alert('Perhatian', 'Semua kolom wajib diisi!');
-      return;
+    const emailAman = email.trim().toLowerCase();
+    
+    if (!emailAman.endsWith('@students.unila.ac.id')) {
+      return Alert.alert(
+        'Email Ditolak ❌', 
+        'Pendaftaran mahasiswa wajib menggunakan email resmi institusi!'
+      );
     }
 
     try {
       const response = await axios.post('http://152.42.243.179:5000/api/auth/register', {
         nama: nama,
         npm: npm,
-        email: emailBersih,
-        password: password
+        email: emailAman, 
+        password: password,
       });
+      
+      Alert.alert('Sukses ', 'Akun Mahasiswa Berhasil Dibuat!');
+      navigation.navigate('Login');
 
-      if (response.status === 201 || response.data.success) {
-        Alert.alert('Sukses 🎉', 'Akun berhasil dibuat! Silakan Login.');
-        setNama('');
-        setNpm('');
-        setEmail('');
-        setPassword('');
-        
-        navigation.navigate('Login');
-      }
     } catch (error) {
-      console.error(error);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Gagal mendaftar ke server.';
-      Alert.alert('Gagal Daftar', errorMessage);
+      console.log("🔴 ERROR SERVER:", error.response?.data);
+
+      if (error.response) {
+        let pesanDariServer = error.response.data.message || error.response.data.error;
+        
+        if (!pesanDariServer) {
+          pesanDariServer = JSON.stringify(error.response.data);
+        }
+
+        Alert.alert('Pendaftaran Ditolak 🛑', `Alasan: ${pesanDariServer}`);
+      } else if (error.request) {
+        Alert.alert('Gagal Terhubung', 'Server tidak merespon. Pastikan PM2 di DigitalOcean sedang berjalan aktif.');
+      } else {
+        Alert.alert('Error Sistem', error.message);
+      }
     }
   };
 
@@ -100,7 +112,7 @@ export default function RegisterScreen({ navigation }) {
               <Ionicons name="mail-outline" size={20} color="#94A3B8" style={styles.inputIcon} />
               <TextInput 
                 style={styles.input} 
-                placeholder="Email mahasiswa" 
+                placeholder="NPM@students.unila.ac.id" 
                 placeholderTextColor="#94A3B8" 
                 value={email} 
                 onChangeText={setEmail} 
@@ -164,11 +176,11 @@ const styles = StyleSheet.create({
     flexGrow: 1, 
     padding: 24, 
     paddingTop: 80, 
-    paddingBottom: 40,
+    paddingBottom: 100, 
   },
   headerContainer: { 
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 45,
   },
   logoContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',

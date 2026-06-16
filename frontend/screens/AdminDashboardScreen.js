@@ -110,7 +110,6 @@ export default function AdminDashboardScreen({ navigation }) {
           </View>
         </View>
 
-        {/* --- TAMBAHAN: Menampilkan Ruangan --- */}
         {item.ruangan && (
           <View style={styles.ruanganContainer}>
             <Ionicons name="business" size={14} color="#0284C7" style={{ marginRight: 4 }} />
@@ -251,7 +250,6 @@ const styles = StyleSheet.create({
   badge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1, marginLeft: 10 },
   badgeText: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
   
-  // Gaya tambahan untuk Ruangan
   ruanganContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E0F2FE', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 10 },
   ruanganText: { fontSize: 12, fontWeight: '700', color: '#0284C7' },
 

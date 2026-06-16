@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaProvider } from 'react-native-safe-area-context'; 
 
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
@@ -34,9 +35,7 @@ function MahasiswaTabs() {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
           borderTopColor: '#E2E8F0',
-          height: 65,
-          paddingBottom: 10,
-          paddingTop: 10,
+          
           elevation: 10,
           shadowColor: '#000',
           shadowOpacity: 0.1,
@@ -45,6 +44,7 @@ function MahasiswaTabs() {
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '700',
+          marginBottom: 5
         }
       })}
     >
@@ -56,16 +56,16 @@ function MahasiswaTabs() {
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="AdminRegister" component={AdminRegisterScreen} />
-        
-        <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
-        
-        <Stack.Screen name="FormLaporan" component={MahasiswaTabs} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="AdminRegister" component={AdminRegisterScreen} />
+          <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+          <Stack.Screen name="FormLaporan" component={MahasiswaTabs} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }

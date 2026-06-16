@@ -45,7 +45,13 @@ export default function FormScreen({ navigation }) {
   const ambilFoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') return Alert.alert('Error', 'Izin kamera dibutuhkan.');
-    let result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.7 });
+    
+    let result = await ImagePicker.launchCameraAsync({ 
+      allowsEditing: false, 
+      aspect: [4, 3], 
+      quality: 0.7 
+    });
+    
     if (!result.canceled) setFoto(result.assets[0].uri);
   };
 
@@ -108,7 +114,7 @@ export default function FormScreen({ navigation }) {
   const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=FFFFFF&color=0A2540&bold=true`;
 
   return (
-    <View style={[styles.mainWrapper, { overflow: 'hidden' }]}>
+    <View style={styles.mainWrapper}>
       <View style={[
         styles.topOrnament, 
         { 
@@ -119,7 +125,10 @@ export default function FormScreen({ navigation }) {
         }
       ]} />
       
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+      >
         <ScrollView 
           contentContainerStyle={styles.container} 
           showsVerticalScrollIndicator={false} 
@@ -185,7 +194,7 @@ export default function FormScreen({ navigation }) {
             <TouchableOpacity style={[styles.actionButton, location && styles.actionButtonActiveLocation]} onPress={ambilLokasi} activeOpacity={0.7}>
               <Ionicons name={location ? "location" : "location-outline"} size={22} color={location ? "#C026D3" : "#94A3B8"} style={styles.inputIcon} />
               <Text style={[styles.actionButtonText, location && styles.actionButtonTextActiveLocation]}>
-                {location ? `${location.latitude}, ${location.longitude}` : 'Deteksi Lokasi Otomatis'}
+                {location ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}` : 'Deteksi Lokasi Otomatis'}
               </Text>
             </TouchableOpacity>
 
@@ -199,7 +208,7 @@ export default function FormScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          <View style={{ height: 120, width: '100%' }} />
+          <View style={{ height: 120 }} />
 
         </ScrollView>
       </KeyboardAvoidingView>
@@ -218,7 +227,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 120 
   },
   
-  container: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20 },
+  container: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 },
   
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 },
   profileSection: { flexDirection: 'row', alignItems: 'center' },
@@ -230,7 +239,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '900', color: '#FFFFFF', marginBottom: 6 },
   subtitle: { fontSize: 14, color: '#D1D5DB' },
   
-  card: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 20, elevation: 8, marginBottom: 10 },
+  card: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 20, elevation: 8, marginBottom: 20 },
+  
   label: { fontSize: 12, fontWeight: '800', color: '#475569', marginBottom: 8, marginTop: 16, textTransform: 'uppercase' },
   inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderWidth: 1.5, borderColor: '#E2E8F0', borderRadius: 16, paddingHorizontal: 16 },
   inputContainerMultiline: { height: 100, alignItems: 'flex-start', paddingVertical: 12 },
@@ -246,9 +256,9 @@ const styles = StyleSheet.create({
   actionButtonTextActiveFoto: { color: '#059669' },
   actionButtonTextActiveLocation: { color: '#A21CAF' },
   
-  previewImage: { width: '100%', height: 180, borderRadius: 16, marginTop: 4, marginBottom: 12, borderWidth: 1.5, borderColor: '#E2E8F0' },
+  previewImage: { width: '100%', height: 200, borderRadius: 16, marginTop: 4, marginBottom: 12, borderWidth: 1.5, borderColor: '#E2E8F0' },
 
-  btnKirim: { backgroundColor: '#0A2540', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 24, shadowColor: '#0A2540', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 },
+  btnKirim: { backgroundColor: '#0A2540', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 32, shadowColor: '#0A2540', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 },
   btnKirimContent: { flexDirection: 'row', alignItems: 'center' },
   btnKirimText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900', letterSpacing: 0.5 }
 });
