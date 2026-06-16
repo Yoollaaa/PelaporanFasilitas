@@ -60,6 +60,7 @@ router.post('/login', async (req, res) => {
       user: {
         id: user.rows[0].id,
         nama: user.rows[0].nama,
+        npm: user.rows[0].npm, 
         email: user.rows[0].email,
         role: user.rows[0].role
       }
@@ -88,7 +89,7 @@ router.post('/register-admin', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     const newUser = await pool.query(
-      "INSERT INTO users (nama, npm, email, password, role) VALUES ($1, $2, $3, $4, 'admin') RETURNING id, nama, email, role",
+      "INSERT INTO users (nama, npm, email, password, role) VALUES ($1, $2, $3, $4, 'admin') RETURNING id, nama, npm, email, role",
       [nama, npm, email, hashedPassword]
     );
 
