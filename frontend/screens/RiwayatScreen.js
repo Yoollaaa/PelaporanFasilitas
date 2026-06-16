@@ -36,11 +36,9 @@ export default function RiwayatScreen() {
   const fetchRiwayat = async (userId) => {
     try {
       const token = await AsyncStorage.getItem('token');
-
       const response = await axios.get(`${API_URL}/user/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
       const laporanku = response.data.data || response.data;
       setRiwayat(laporanku);
     } catch (error) {
@@ -74,7 +72,7 @@ export default function RiwayatScreen() {
       statusIcon = 'checkmark-circle-outline';
     }
 
-   let imageUrl = null;
+    let imageUrl = null;
     if (item.foto) {
       if (item.foto.startsWith('http')) {
         imageUrl = item.foto;
@@ -89,8 +87,9 @@ export default function RiwayatScreen() {
         <View style={styles.historyCardHeader}>
           <View style={styles.idContainer}>
             <Ionicons name="receipt-outline" size={16} color="#64748B" style={{ marginRight: 6 }} />
-            <Text style={styles.historyId}>Laporan #{index + 1}</Text>
+            <Text style={styles.historyId}>Laporan #{riwayat.length - index}</Text>
           </View>
+
           <View style={[styles.statusBadge, { backgroundColor: statusBg, borderColor: statusColor }]}>
             <Ionicons name={statusIcon} size={12} color={statusColor} style={{ marginRight: 4 }} />
             <Text style={[styles.statusBadgeText, { color: statusColor }]}>{item.status || 'Pending'}</Text>
@@ -99,29 +98,29 @@ export default function RiwayatScreen() {
 
         <View style={styles.divider} />
 
-        {item.ruangan && (
+        {item.ruangan ? (
           <View style={styles.ruanganContainer}>
             <Ionicons name="business" size={14} color="#0284C7" style={{ marginRight: 4 }} />
             <Text style={styles.ruanganText}>Ruangan: {item.ruangan}</Text>
           </View>
-        )}
+        ) : null}
 
         <Text style={styles.historyDesc}>{item.deskripsi}</Text>
 
-        {imageUrl && (
+        {imageUrl ? (
           <Image 
             source={{ uri: imageUrl }} 
             style={styles.historyImage} 
             resizeMode="cover"
           />
-        )}
+        ) : null}
 
-        {(item.latitude && item.longitude) && (
+        {(item.latitude && item.longitude) ? (
           <View style={styles.locationContainer}>
             <Ionicons name="location" size={14} color="#C026D3" style={{ marginRight: 4 }} />
             <Text style={styles.locationText}>{item.latitude}, {item.longitude}</Text>
           </View>
-        )}
+        ) : null}
       </View>
     );
   };

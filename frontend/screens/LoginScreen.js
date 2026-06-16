@@ -45,7 +45,7 @@ export default function LoginScreen({ navigation }) {
         await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
         await AsyncStorage.setItem('token', response.data.token);
 
-        Alert.alert('Sukses 🎉', 'Berhasil Login!');
+        Alert.alert('Sukses ', 'Berhasil Login!');
 
         if (userRole === 'admin') {
           navigation.replace('AdminDashboard'); 
@@ -53,11 +53,16 @@ export default function LoginScreen({ navigation }) {
           navigation.replace('FormLaporan'); 
         }
       }
-    } catch (error) {
+   } catch (error) {
       console.log("Error Detail:", error.message);
       console.log("Error Response:", error.response?.data);
-      Alert.alert('Gagal', 'Tidak bisa terhubung ke server');
-}
+      
+      const pesanDariServer = error.response?.data?.error 
+                           || error.response?.data?.message 
+                           || 'Tidak bisa terhubung ke server. Periksa koneksi internetmu.';
+                           
+      Alert.alert('Gagal Login', pesanDariServer);
+    }
   };
 
   return (
