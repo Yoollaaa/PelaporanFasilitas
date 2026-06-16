@@ -15,7 +15,6 @@ app.use('/api/auth', authRoutes);
 
 const laporanRoutes = require('./routes/laporan');
 
-app.use('/api/auth', authRoutes);
 app.use('/api/laporan', laporanRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
