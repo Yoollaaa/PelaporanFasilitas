@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "9e46f10c-9465-4967-9035-17127bdd1aa0"
+      }
+    },
+    "android": {
+      "package": "com.yols.frontend"
+    }
+  }
+}
