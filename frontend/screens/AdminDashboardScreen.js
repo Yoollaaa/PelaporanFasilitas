@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  StyleSheet, Text, View, FlatList, TouchableOpacity, Image,
-  Alert, ActivityIndicator, Dimensions, RefreshControl
+  Text, View, FlatList, TouchableOpacity, Image,
+  Alert, ActivityIndicator, Dimensions, RefreshControl, TextInput, ScrollView, Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { globalStyles, adminStyles, COLORS } from '../styles/GlobalStyles';
 
-const { width, height } = Dimensions.get('window');
 const API_URL = 'http://152.42.243.179:5000/api/laporan';
 const BASE_URL = 'http://152.42.243.179:5000/'; 
 
@@ -15,15 +15,21 @@ export default function AdminDashboardScreen({ navigation }) {
   const [laporan, setLaporan] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('Semua');
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [catatanAdmin, setCatatanAdmin] = useState('');
 
   const fetchLaporan = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      
       const response = await axios.get(API_URL, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
       setLaporan(response.data.data || response.data);
     } catch (error) {
       console.error(error);
@@ -62,16 +68,27 @@ export default function AdminDashboardScreen({ navigation }) {
     );
   };
 
-  const updateStatus = async (id, statusBaru) => {
+  const openModal = (id, statusBaru) => {
+    setSelectedId(id);
+    setSelectedStatus(statusBaru);
+    setCatatanAdmin(''); 
+    setModalVisible(true);
+  };
+
+  const submitUpdateStatus = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
       
-      await axios.patch(`${API_URL}/${id}/status`, 
-        { status: statusBaru }, 
+      await axios.patch(`${API_URL}/${selectedId}/status`, 
+        { 
+          status: selectedStatus,
+          catatan_admin: catatanAdmin 
+        }, 
         { headers: { Authorization: `Bearer ${token}` } } 
       );
       
-      Alert.alert('Sukses ', `Status laporan berhasil diperbarui menjadi: ${statusBaru}`);
+      setModalVisible(false);
+      Alert.alert('Sukses', `Status laporan berhasil diperbarui menjadi: ${selectedStatus}`);
       fetchLaporan(); 
     } catch (error) {
       console.error(error);
@@ -80,10 +97,17 @@ export default function AdminDashboardScreen({ navigation }) {
   };
 
   const renderItem = ({ item }) => {
-    let statusColor = '#EAB308'; 
-    let statusBg = '#FEF9C3';
-    if (item.status === 'Diproses') { statusColor = '#3B82F6'; statusBg = '#DBEAFE'; }
-    if (item.status === 'Selesai') { statusColor = '#10B981'; statusBg = '#D1FAE5'; }
+    let statusColor = COLORS.warning || '#F59E0B'; 
+    let statusBg = COLORS.warningBg || '#FEF9C3';
+    
+    if (item.status === 'Diproses') { 
+      statusColor = COLORS.info || '#3B82F6'; 
+      statusBg = COLORS.infoBg || '#DBEAFE'; 
+    }
+    if (item.status === 'Selesai') { 
+      statusColor = COLORS.success || '#10B981'; 
+      statusBg = COLORS.successBg || '#D1FAE5'; 
+    }
 
     let imageUrl = null;
     if (item.foto) {
@@ -96,70 +120,80 @@ export default function AdminDashboardScreen({ navigation }) {
     }
 
     return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={styles.reporterInfo}>
+      <View style={adminStyles.card}>
+        <View style={adminStyles.cardHeader}>
+          <View style={adminStyles.reporterInfo}>
             <Ionicons name="person-circle" size={36} color="#94A3B8" />
             <View style={{ marginLeft: 10 }}>
-              <Text style={styles.reporterName}>{item.nama_pelapor || 'Mahasiswa Anonim'}</Text>
-              <Text style={styles.ticketId}>ID Laporan: #{item.id}</Text>
+              <Text style={adminStyles.reporterName}>{item.nama_pelapor || 'Mahasiswa Anonim'}</Text>
+              <Text style={adminStyles.ticketId}>ID Laporan: #{item.id}</Text>
             </View>
           </View>
-          <View style={[styles.badge, { backgroundColor: statusBg, borderColor: statusColor }]}>
-            <Text style={[styles.badgeText, { color: statusColor }]}>{item.status || 'Pending'}</Text>
+          <View style={[adminStyles.badge, { backgroundColor: statusBg, borderColor: statusColor }]}>
+            <Text style={[adminStyles.badgeText, { color: statusColor }]}>{item.status || 'Pending'}</Text>
           </View>
         </View>
 
         {item.ruangan && (
-          <View style={styles.ruanganContainer}>
-            <Ionicons name="business" size={14} color="#0284C7" style={{ marginRight: 4 }} />
-            <Text style={styles.ruanganText}>Lokasi: {item.ruangan}</Text>
+          <View style={adminStyles.ruanganContainer}>
+            <Ionicons name="business" size={14} color={COLORS.info} style={{ marginRight: 4 }} />
+            <Text style={adminStyles.ruanganText}>Lokasi: {item.ruangan}</Text>
           </View>
         )}
 
-        <Text style={styles.laporanDeskripsi}>{item.deskripsi}</Text>
+        <Text style={adminStyles.laporanDeskripsi}>{item.deskripsi}</Text>
 
         {imageUrl ? (
           <Image 
             source={{ uri: imageUrl }} 
-            style={styles.laporanImage} 
+            style={adminStyles.laporanImage} 
             resizeMode="cover"
           />
         ) : (
-          <View style={styles.noImageContainer}>
+          <View style={adminStyles.noImageContainer}>
             <Ionicons name="image-outline" size={24} color="#94A3B8" />
-            <Text style={styles.noImageText}>Tidak ada foto / Foto gagal dimuat</Text>
+            <Text style={adminStyles.noImageText}>Tidak ada foto / Foto gagal dimuat</Text>
           </View>
         )}
 
         {(item.latitude && item.longitude) && (
-          <View style={styles.locationContainer}>
+          <View style={adminStyles.locationContainer}>
             <Ionicons name="location" size={14} color="#C026D3" style={{ marginRight: 4 }} />
-            <Text style={styles.locationText}>{item.latitude}, {item.longitude}</Text>
+            <Text style={adminStyles.locationText}>{item.latitude}, {item.longitude}</Text>
           </View>
         )}
 
-        <View style={styles.divider} />
+        {item.catatan_admin && (
+          <View style={adminStyles.catatanBox}>
+            <Ionicons name="chatbox-ellipses-outline" size={16} color={COLORS.textGray} style={{ marginRight: 6 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={adminStyles.catatanTitle}>Catatan Admin:</Text>
+              <Text style={adminStyles.catatanText}>{item.catatan_admin}</Text>
+            </View>
+          </View>
+        )}
 
-        <View style={styles.actionContainer}>
+        <View style={adminStyles.divider} />
+
+        <View style={adminStyles.actionContainer}>
           {(!item.status || item.status === 'Pending') && (
-            <TouchableOpacity style={[styles.btnAction, styles.btnProses]} onPress={() => updateStatus(item.id, 'Diproses')} activeOpacity={0.8}>
+            <TouchableOpacity style={[adminStyles.btnAction, adminStyles.btnProses]} onPress={() => openModal(item.id, 'Diproses')} activeOpacity={0.8}>
               <Ionicons name="construct-outline" size={18} color="#FFFFFF" />
-              <Text style={styles.btnActionText}>Proses Perbaikan</Text>
+              <Text style={adminStyles.btnActionText}>Proses Perbaikan</Text>
             </TouchableOpacity>
           )}
           
           {item.status === 'Diproses' && (
-            <TouchableOpacity style={[styles.btnAction, styles.btnSelesai]} onPress={() => updateStatus(item.id, 'Selesai')} activeOpacity={0.8}>
+            <TouchableOpacity style={[adminStyles.btnAction, adminStyles.btnSelesai]} onPress={() => openModal(item.id, 'Selesai')} activeOpacity={0.8}>
               <Ionicons name="checkmark-done-outline" size={18} color="#FFFFFF" />
-              <Text style={styles.btnActionText}>Tandai Selesai</Text>
+              <Text style={adminStyles.btnActionText}>Tandai Selesai</Text>
             </TouchableOpacity>
           )}
 
           {item.status === 'Selesai' && (
-            <View style={styles.finishedContainer}>
-              <Ionicons name="shield-checkmark" size={18} color="#10B981" />
-              <Text style={styles.finishedText}>Fasilitas Telah Diperbaiki</Text>
+            <View style={adminStyles.finishedContainer}>
+              <Ionicons name="shield-checkmark" size={18} color={COLORS.success} />
+              <Text style={adminStyles.finishedText}>Fasilitas Telah Diperbaiki</Text>
             </View>
           )}
         </View>
@@ -167,113 +201,130 @@ export default function AdminDashboardScreen({ navigation }) {
     );
   };
 
-  return (
-    <View style={styles.mainWrapper}>
-      <View style={styles.topOrnament} />
+  const laporanTersaring = laporan.filter((item) => {
+    const matchStatus = filterStatus === 'Semua' || item.status === filterStatus;    
+    const kataKunci = searchQuery.toLowerCase();
+    const ruanganMatch = item.ruangan?.toLowerCase().includes(kataKunci) || false;
+    const deskripsiMatch = item.deskripsi?.toLowerCase().includes(kataKunci) || false;
+    return matchStatus && (ruanganMatch || deskripsiMatch);
+  });
 
-      <View style={styles.container}>
-        <View style={styles.headerWrapper}>
-          <View style={styles.headerLeft}>
-            <View style={styles.logoContainer}>
-              <Ionicons name="folder-open" size={28} color="#FFFFFF" />
+  return (
+    <View style={globalStyles.mainWrapper}>
+      <View style={globalStyles.topOrnament} />
+
+      <View style={globalStyles.container}>
+        <View style={adminStyles.headerWrapper}>
+          <View style={adminStyles.headerLeft}>
+            <View style={globalStyles.headerLogoWrapper}>
+              <Image 
+                source={require('../assets/Logo_UnivLampung.png')} 
+                style={globalStyles.mainLogo}
+                resizeMode="contain"
+              />
             </View>
             <View>
-              <Text style={styles.title}>Dashboard Sarpras</Text>
-              <Text style={styles.subtitle}>Kelola laporan masuk</Text>
+              <Text style={adminStyles.title}>Dashboard Sarpras</Text>
+              <Text style={adminStyles.subtitle}>Kelola laporan masuk</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.btnLogout} onPress={handleLogout} activeOpacity={0.7}>
+          <TouchableOpacity style={adminStyles.btnLogout} onPress={handleLogout} activeOpacity={0.7}>
             <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
+        <View style={adminStyles.searchContainer}>
+          <TextInput
+            style={adminStyles.searchInput}
+            placeholder="Cari nama ruangan atau keluhan..."
+            placeholderTextColor="#94A3B8"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+
+        <View style={adminStyles.filterContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {['Semua', 'Pending', 'Diproses', 'Selesai'].map((status) => (
+              <TouchableOpacity
+                key={status}
+                style={[
+                  adminStyles.filterButton,
+                  filterStatus === status && adminStyles.filterButtonActive
+                ]}
+                onPress={() => setFilterStatus(status)}
+              >
+                <Text style={[
+                  adminStyles.filterText,
+                  filterStatus === status && adminStyles.filterTextActive
+                ]}>
+                  {status}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         {loading ? (
-          <View style={styles.centerLoading}>
-            <ActivityIndicator size="large" color="#0A2540" />
+          <View style={adminStyles.centerLoading}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
           </View>
         ) : (
           <FlatList
-            data={laporan}
+            data={laporanTersaring}
             keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
             renderItem={renderItem}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContainer}
+            contentContainerStyle={adminStyles.listContainer}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0A2540']} />
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
             }
             ListEmptyComponent={
-              <View style={styles.emptyContainer}>
+              <View style={adminStyles.emptyContainer}>
                 <Ionicons name="checkmark-done-circle-outline" size={60} color="#94A3B8" />
-                <Text style={styles.emptyText}>Belum ada laporan kerusakan.</Text>
+                <Text style={adminStyles.emptyText}>Belum ada laporan atau tidak ditemukan.</Text>
               </View>
             }
           />
         )}
       </View>
+
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={adminStyles.modalOverlay}>
+          <View style={adminStyles.modalContent}>
+            <View style={adminStyles.modalHeader}>
+              <Text style={adminStyles.modalTitle}>Update ke: {selectedStatus}</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.textDark} />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={adminStyles.modalSubtitle}>
+              Tambahkan catatan untuk mahasiswa mengenai laporan ini (opsional).
+            </Text>
+            
+            <TextInput
+              style={adminStyles.modalInput}
+              placeholder="Contoh: Suku cadang AC sedang dipesan..."
+              placeholderTextColor="#94A3B8"
+              multiline
+              numberOfLines={3}
+              value={catatanAdmin}
+              onChangeText={setCatatanAdmin}
+              textAlignVertical="top"
+            />
+            
+            <TouchableOpacity style={adminStyles.btnSimpan} onPress={submitUpdateStatus}>
+              <Text style={adminStyles.btnSimpanText}>Simpan & Perbarui</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  mainWrapper: { flex: 1, backgroundColor: '#F4F7FC' },
-  topOrnament: {
-    position: 'absolute', top: -height * 0.15, left: -width * 0.1,
-    width: width * 1.2, height: height * 0.35, backgroundColor: '#0A2540',
-    transform: [{ rotate: '-5deg' }], borderBottomLeftRadius: 60, borderBottomRightRadius: 120,
-  },
-  container: { flex: 1, paddingTop: 60 },
-  headerWrapper: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 20 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  logoContainer: { backgroundColor: 'rgba(255, 255, 255, 0.2)', padding: 12, borderRadius: 16, marginRight: 14, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)' },
-  title: { fontSize: 22, fontWeight: '900', color: '#FFFFFF' },
-  subtitle: { fontSize: 13, color: '#D1D5DB' },
-  btnLogout: { backgroundColor: 'rgba(255, 255, 255, 0.15)', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)' },
-  
-  listContainer: { paddingVertical: 10, paddingBottom: 40 },
-  
-  card: { 
-    backgroundColor: '#FFFFFF', 
-    borderRadius: 20, 
-    padding: 20, 
-    marginHorizontal: 24, 
-    marginBottom: 20,
-    shadowColor: '#000', 
-    shadowOpacity: 0.08, 
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4, 
-  },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  reporterInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  reporterName: { fontSize: 15, fontWeight: '800', color: '#0F172A' },
-  ticketId: { fontSize: 12, color: '#64748B', fontWeight: '600', marginTop: 2 },
-  badge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1, marginLeft: 10 },
-  badgeText: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
-  
-  ruanganContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E0F2FE', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 10 },
-  ruanganText: { fontSize: 12, fontWeight: '700', color: '#0284C7' },
-
-  laporanDeskripsi: { fontSize: 15, color: '#334155', lineHeight: 22, fontWeight: '500', marginBottom: 12 },
-  
-  laporanImage: { width: '100%', height: 180, borderRadius: 12, marginBottom: 12, backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0' },
-  noImageContainer: { width: '100%', height: 100, borderRadius: 12, marginBottom: 12, backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0', justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed' },
-  noImageText: { fontSize: 13, color: '#94A3B8', marginTop: 8, fontWeight: '500' },
-  
-  locationContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FDF4FF', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, alignSelf: 'flex-start' },
-  locationText: { fontSize: 11, fontWeight: '700', color: '#A21CAF' },
-  
-  divider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 16 },
-  
-  actionContainer: { flexDirection: 'row', justifyContent: 'flex-end' },
-  btnAction: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, elevation: 2 },
-  btnProses: { backgroundColor: '#F59E0B' },
-  btnSelesai: { backgroundColor: '#10B981' },
-  btnActionText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14, marginLeft: 8 },
-  
-  finishedContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0FDF4', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1, borderColor: '#A7F3D0' },
-  finishedText: { color: '#10B981', fontWeight: '800', fontSize: 13, marginLeft: 6 },
-  
-  centerLoading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyContainer: { alignItems: 'center', marginTop: 80 },
-  emptyText: { marginTop: 16, fontSize: 15, color: '#94A3B8', fontWeight: '500' }
-});
