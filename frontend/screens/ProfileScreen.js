@@ -52,6 +52,7 @@ export default function ProfileScreen({ navigation }) {
   const roleLabel = isAdmin ? 'Staf Sarpras Universitas Lampung' : 'Mahasiswa Universitas Lampung';
   const idLabel = isAdmin ? 'NIP / ID Staf' : 'NPM';
 
+  
   return (
     <View style={globalStyles.mainWrapper}>
       <View style={globalStyles.topOrnament} />
