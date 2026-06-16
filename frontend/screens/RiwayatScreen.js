@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 import { 
   StyleSheet, Text, View, FlatList, ActivityIndicator, Image, 
   RefreshControl, useWindowDimensions 
@@ -17,17 +19,19 @@ export default function RiwayatScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [userData, setUserData] = useState(null);
 
-  useEffect(() => {
-    const fetchAwal = async () => {
-      const data = await AsyncStorage.getItem('user');
-      if (data) {
-        const user = JSON.parse(data);
-        setUserData(user);
-        fetchRiwayat(user.id);
-      }
-    };
-    fetchAwal();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const fetchAwal = async () => {
+        const data = await AsyncStorage.getItem('user');
+        if (data) {
+          const user = JSON.parse(data);
+          setUserData(user);
+          fetchRiwayat(user.id); 
+        }
+      };
+      fetchAwal();
+    }, [])
+  );
 
   const fetchRiwayat = async (userId) => {
     try {
@@ -70,16 +74,18 @@ export default function RiwayatScreen() {
       statusIcon = 'checkmark-circle-outline';
     }
 
-    let imageUrl = null;
+   let imageUrl = null;
     if (item.foto) {
-      imageUrl = item.foto.startsWith('http') 
-        ? item.foto 
-        : `${BASE_URL}${item.foto.replace(/\\/g, '/')}`;
+      if (item.foto.startsWith('http')) {
+        imageUrl = item.foto;
+      } else {
+        const cleanPath = item.foto.replace(/\\/g, '/').replace(/^uploads\//, '');
+        imageUrl = `${BASE_URL}uploads/${cleanPath}`;
+      }
     }
 
     return (
       <View style={styles.historyCard}>
-        {/* Header Kartu */}
         <View style={styles.historyCardHeader}>
           <View style={styles.idContainer}>
             <Ionicons name="receipt-outline" size={16} color="#64748B" style={{ marginRight: 6 }} />
@@ -92,6 +98,13 @@ export default function RiwayatScreen() {
         </View>
 
         <View style={styles.divider} />
+
+        {item.ruangan && (
+          <View style={styles.ruanganContainer}>
+            <Ionicons name="business" size={14} color="#0284C7" style={{ marginRight: 4 }} />
+            <Text style={styles.ruanganText}>Ruangan: {item.ruangan}</Text>
+          </View>
+        )}
 
         <Text style={styles.historyDesc}>{item.deskripsi}</Text>
 
@@ -180,6 +193,10 @@ const styles = StyleSheet.create({
   statusBadgeText: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
   
   divider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 14 },
+  
+  ruanganContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E0F2FE', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 10 },
+  ruanganText: { fontSize: 12, fontWeight: '700', color: '#0284C7' },
+
   historyDesc: { fontSize: 15, color: '#334155', lineHeight: 22, fontWeight: '500' },
 
   historyImage: { 

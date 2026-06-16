@@ -19,20 +19,21 @@ const upload = multer({ storage: storage });
 
 router.post('/', authMiddleware, upload.single('foto'), async (req, res) => {
   try {
-    const { user_id, deskripsi, latitude, longitude } = req.body;
+    const { user_id, ruangan, deskripsi, latitude, longitude } = req.body;
     const foto = req.file ? req.file.filename : null;
 
     if (!user_id || !deskripsi) {
       return res.status(400).json({ error: "User ID dan deskripsi kerusakan wajib diisi!" });
     }
 
+   
     const insertQuery = `
-      INSERT INTO laporan (user_id, deskripsi, foto, latitude, longitude)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO laporan (user_id, ruangan, deskripsi, foto, latitude, longitude)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
     `;
     
-    const result = await pool.query(insertQuery, [user_id, deskripsi, foto, latitude, longitude]);
+    const result = await pool.query(insertQuery, [user_id, ruangan, deskripsi, foto, latitude, longitude]);
 
     res.status(201).json({
       message: "Laporan fasilitas rusak berhasil dikirim!",
