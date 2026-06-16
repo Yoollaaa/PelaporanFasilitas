@@ -4,7 +4,6 @@ import {
   KeyboardAvoidingView, Platform, ScrollView, Dimensions 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
@@ -24,13 +23,31 @@ export default function LoginScreen({ navigation }) {
     }
 
     try {
-      const response = await axios.post('http://152.42.243.179:5000/api/auth/login', {
-        email: emailBersih, 
-        password: password
+      const response = await fetch('http://152.42.243.179:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: emailBersih,
+          password: password
+        })
       });
 
-      if (response.data.token) {
-        const userRole = response.data.user.role;
+      const data = await response.json();
+
+      // Fetch tidak menganggap status 400 (salah password dll) sebagai error catch, 
+      // jadi kita tangkap di sini pakai response.ok
+      if (!response.ok) {
+        const pesanDariServer = data.error || data.message || 'Gagal login, periksa kembali email dan passwordmu.';
+        Alert.alert('Gagal Login', pesanDariServer);
+        return;
+      }
+
+      // Jika sukses menembus database dan dapat token
+      if (data.token) {
+        const userRole = data.user.role;
 
         if (loginType === 'admin' && userRole !== 'admin') {
           Alert.alert('Akses Ditolak', 'Akun ini tidak terdaftar sebagai Staf/Admin Sarpras.');
@@ -42,10 +59,10 @@ export default function LoginScreen({ navigation }) {
            return;
         }
 
-        await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
-        await AsyncStorage.setItem('token', response.data.token);
+        await AsyncStorage.setItem('user', JSON.stringify(data.user));
+        await AsyncStorage.setItem('token', data.token);
 
-        Alert.alert('Sukses ', 'Berhasil Login!');
+        Alert.alert('Sukses', 'Berhasil Login!');
 
         if (userRole === 'admin') {
           navigation.replace('AdminDashboard'); 
@@ -53,15 +70,10 @@ export default function LoginScreen({ navigation }) {
           navigation.replace('FormLaporan'); 
         }
       }
-   } catch (error) {
-      console.log("Error Detail:", error.message);
-      console.log("Error Response:", error.response?.data);
-      
-      const pesanDariServer = error.response?.data?.error 
-                           || error.response?.data?.message 
-                           || 'Tidak bisa terhubung ke server. Periksa koneksi internetmu.';
-                           
-      Alert.alert('Gagal Login', pesanDariServer);
+    } catch (error) {
+      // Ini akan tereksekusi kalau benar-benar putus jaringan (Network Error)
+      console.log("Error Fetch:", error.message);
+      Alert.alert('Gagal', 'Tidak bisa terhubung ke server. Periksa koneksi internetmu.');
     }
   };
 
