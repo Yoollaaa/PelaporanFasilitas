@@ -8,8 +8,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
-const API_URL = 'http://167.172.66.214:5000/api/laporan';
-const BASE_URL = 'http://167.172.66.214:5000/'; 
+const API_URL = 'http://152.42.243.179:5000/api/laporan';
+const BASE_URL = 'http://152.42.243.179:5000/'; 
 
 export default function AdminDashboardScreen({ navigation }) {
   const [laporan, setLaporan] = useState([]);

@@ -14,7 +14,7 @@ export default function AdminRegisterScreen({ navigation }) {
 
   const handleRegister = async () => {
     try {
-      const response = await axios.post('http://167.172.66.214:5000/api/auth/register-admin', {
+      const response = await axios.post('http://152.42.243.179:5000/api/auth/register-admin', {
         nama: form.nama,
         npm: form.npm,
         email: form.email.trim().toLowerCase(),
