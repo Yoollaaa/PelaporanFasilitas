@@ -22,15 +22,16 @@ export default function LoginScreen({ navigation }) {
       return;
     }
 
-    if (loginType === 'mahasiswa') {
-      if (!emailBersih.endsWith('@students.unila.ac.id')) {
-        return Alert.alert('Akses Ditolak', 'Mahasiswa wajib menggunakan email @students.unila.ac.id');
+    if (
+        loginType === 'mahasiswa' &&
+        !emailBersih.endsWith('@students.unila.ac.id')
+      ) {
+        Alert.alert(
+          'Email Tidak Valid',
+          'Mahasiswa wajib menggunakan email kampus (@students.unila.ac.id)'
+        );
+        return;
       }
-    } else {
-      if (!emailBersih.endsWith('@unila.ac.id')) {
-         return Alert.alert('Akses Ditolak', 'Admin wajib menggunakan email resmi @unila.ac.id');
-      }
-    }
 
     try {
       const response = await fetch('http://152.42.243.179:5000/api/auth/login', {
@@ -48,21 +49,38 @@ export default function LoginScreen({ navigation }) {
       const data = await response.json();
 
       if (!response.ok) {
-        const pesanDariServer = data.error || data.message || 'Gagal login.';
+        const pesanDariServer = data.error || data.message || 'Gagal login, periksa kembali email dan passwordmu.';
         Alert.alert('Gagal Login', pesanDariServer);
         return;
       }
 
       if (data.token) {
         const userRole = data.user.role;
+
+        if (loginType === 'admin' && userRole !== 'admin') {
+          Alert.alert('Akses Ditolak', 'Akun ini tidak terdaftar sebagai Staf/Admin Sarpras.');
+          return;
+        }
+
+        if (loginType === 'mahasiswa' && userRole === 'admin') {
+           Alert.alert('Perhatian', 'Kamu adalah Admin. Silakan pindah ke tab Admin Sarpras untuk masuk.');
+           return;
+        }
+
         await AsyncStorage.setItem('user', JSON.stringify(data.user));
         await AsyncStorage.setItem('token', data.token);
-        
+
         Alert.alert('Sukses', 'Berhasil Login!');
-        userRole === 'admin' ? navigation.replace('AdminDashboard') : navigation.replace('FormLaporan');
+
+        if (userRole === 'admin') {
+          navigation.replace('AdminDashboard'); 
+        } else {
+          navigation.replace('FormLaporan'); 
+        }
       }
     } catch (error) {
-      Alert.alert('Gagal', 'Tidak bisa terhubung ke server.');
+      console.log("Error Fetch:", error.message);
+      Alert.alert('Gagal', 'Tidak bisa terhubung ke server. Periksa koneksi internetmu.');
     }
   };
 
@@ -111,20 +129,47 @@ export default function LoginScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.label}>Email </Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#94A3B8" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="contoh@gmail.com"
-                placeholderTextColor="#94A3B8"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
+            <Text style={styles.label}>
+                {loginType === 'mahasiswa' ? 'Email Kampus' : 'Email'}
+              </Text>
+
+              <View style={styles.inputContainer}>
+                <Ionicons
+                  name="mail-outline"
+                  size={20}
+                  color="#94A3B8"
+                  style={styles.inputIcon}
+                />
+
+                <TextInput
+                  style={styles.input}
+                  placeholder={
+                    loginType === 'mahasiswa'
+                      ? 'contoh@students.unila.ac.id'
+                      : 'admin@gmail.com'
+                  }
+                  placeholderTextColor="#94A3B8"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
+              {loginType === 'mahasiswa' && (
+                <Text
+                  style={{
+                    color: '#64748B',
+                    fontSize: 12,
+                    marginTop: -10,
+                    marginBottom: 12,
+                    marginLeft: 4,
+                  }}
+                >
+                  Gunakan email kampus (@students.unila.ac.id)
+                </Text>
+              )}
 
             <Text style={styles.label}>Kata Sandi</Text>
             <View style={styles.inputContainer}>
