@@ -157,19 +157,7 @@ export default function LoginScreen({ navigation }) {
                 />
               </View>
 
-              {loginType === 'mahasiswa' && (
-                <Text
-                  style={{
-                    color: '#64748B',
-                    fontSize: 12,
-                    marginTop: -10,
-                    marginBottom: 12,
-                    marginLeft: 4,
-                  }}
-                >
-                  Gunakan email kampus (@students.unila.ac.id)
-                </Text>
-              )}
+  
 
             <Text style={styles.label}>Kata Sandi</Text>
             <View style={styles.inputContainer}>
